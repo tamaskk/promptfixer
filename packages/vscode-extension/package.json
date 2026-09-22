@@ -1,0 +1,219 @@
+{
+  "name": "prompts-chat",
+  "displayName": "prompts.chat",
+  "description": "Search, browse, copy and insert AI prompts from prompts.chat right inside VS Code",
+  "version": "0.1.0",
+  "publisher": "prompts-chat",
+  "license": "MIT",
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/f/prompts.chat",
+    "directory": "packages/vscode-extension"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other",
+    "Snippets"
+  ],
+  "keywords": [
+    "prompts",
+    "ai",
+    "chatgpt",
+    "claude",
+    "llm"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "configuration": {
+      "title": "prompts.chat",
+      "properties": {
+        "promptsChat.baseUrl": {
+          "type": "string",
+          "default": "https://prompts.chat",
+          "markdownDescription": "Base URL of the prompts.chat instance to load prompts from (e.g. your own Vercel deployment)."
+        },
+        "promptsChat.cacheMaxAgeHours": {
+          "type": "number",
+          "default": 24,
+          "minimum": 0,
+          "markdownDescription": "Refresh the local prompt cache automatically when it is older than this many hours. `0` disables automatic refresh."
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "promptsChat",
+          "title": "prompts.chat",
+          "icon": "media/activity-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "promptsChat": [
+        {
+          "id": "promptsChat.latest",
+          "name": "Latest"
+        },
+        {
+          "id": "promptsChat.categories",
+          "name": "Categories"
+        },
+        {
+          "id": "promptsChat.favorites",
+          "name": "Favorites"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "promptsChat.favorites",
+        "contents": "No favorite prompts yet.\nRight-click a prompt and choose **Add to Favorites**."
+      }
+    ],
+    "commands": [
+      {
+        "command": "promptsChat.search",
+        "title": "Search Prompts",
+        "category": "prompts.chat",
+        "icon": "$(search)"
+      },
+      {
+        "command": "promptsChat.random",
+        "title": "Random Prompt",
+        "category": "prompts.chat",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "promptsChat.refresh",
+        "title": "Refresh Prompts",
+        "category": "prompts.chat",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "promptsChat.open",
+        "title": "Open Prompt",
+        "category": "prompts.chat"
+      },
+      {
+        "command": "promptsChat.copy",
+        "title": "Copy Prompt",
+        "category": "prompts.chat",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "promptsChat.insert",
+        "title": "Insert Prompt at Cursor",
+        "category": "prompts.chat",
+        "icon": "$(insert)"
+      },
+      {
+        "command": "promptsChat.openInBrowser",
+        "title": "Open on Website",
+        "category": "prompts.chat",
+        "icon": "$(link-external)"
+      },
+      {
+        "command": "promptsChat.addFavorite",
+        "title": "Add to Favorites",
+        "category": "prompts.chat",
+        "icon": "$(star-empty)"
+      },
+      {
+        "command": "promptsChat.removeFavorite",
+        "title": "Remove from Favorites",
+        "category": "prompts.chat",
+        "icon": "$(star-full)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "promptsChat.search",
+          "when": "view == promptsChat.latest",
+          "group": "navigation@1"
+        },
+        {
+          "command": "promptsChat.random",
+          "when": "view == promptsChat.latest",
+          "group": "navigation@2"
+        },
+        {
+          "command": "promptsChat.refresh",
+          "when": "view == promptsChat.latest",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "promptsChat.copy",
+          "when": "viewItem =~ /^prompt/",
+          "group": "inline@1"
+        },
+        {
+          "command": "promptsChat.insert",
+          "when": "viewItem =~ /^prompt/",
+          "group": "1_actions@2"
+        },
+        {
+          "command": "promptsChat.openInBrowser",
+          "when": "viewItem =~ /^prompt/",
+          "group": "1_actions@3"
+        },
+        {
+          "command": "promptsChat.addFavorite",
+          "when": "viewItem == prompt",
+          "group": "2_favorites@1"
+        },
+        {
+          "command": "promptsChat.removeFavorite",
+          "when": "viewItem == prompt-favorite",
+          "group": "2_favorites@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "promptsChat.open",
+          "when": "false"
+        },
+        {
+          "command": "promptsChat.copy",
+          "when": "false"
+        },
+        {
+          "command": "promptsChat.insert",
+          "when": "false"
+        },
+        {
+          "command": "promptsChat.openInBrowser",
+          "when": "false"
+        },
+        {
+          "command": "promptsChat.addFavorite",
+          "when": "false"
+        },
+        {
+          "command": "promptsChat.removeFavorite",
+          "when": "false"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p .",
+    "test": "npm run compile && node --test dist/test/*.test.js",
+    "package": "npm run compile && vsce package --no-dependencies",
+    "vscode:prepublish": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/vscode": "~1.90.0",
+    "@vscode/vsce": "^3.2.0",
+    "typescript": "^5.6.0"
+  }
+}
