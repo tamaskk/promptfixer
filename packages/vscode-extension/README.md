@@ -37,5 +37,5 @@ Press `F5` in VS Code with this folder open to launch an Extension Development H
 Install the packaged extension with:
 
 ```bash
-code --install-extension prompts-chat-0.1.0.vsix
+code --install-extension prompts-chat-0.1.1.vsix
 ```

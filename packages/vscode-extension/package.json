@@ -2,7 +2,7 @@
   "name": "prompts-chat",
   "displayName": "prompts.chat",
   "description": "Search, browse, copy and insert AI prompts from prompts.chat right inside VS Code",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "prompts-chat",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -72,7 +72,7 @@
     "viewsWelcome": [
       {
         "view": "promptsChat.favorites",
-        "contents": "No favorite prompts yet.\nRight-click a prompt and choose **Add to Favorites**."
+        "contents": "No favorite prompts yet.\nRight-click a prompt and choose \"Add to Favorites\"."
       }
     ],
     "commands": [

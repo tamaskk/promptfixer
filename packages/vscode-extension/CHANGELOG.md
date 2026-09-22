@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1
+
+- Show the full load error in a tooltip
+- Fix formatting of the empty Favorites message
+
 ## 0.1.0
 
 - Open App command: embeds the full web app in an editor tab

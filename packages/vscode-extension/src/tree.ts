@@ -31,6 +31,7 @@ class CategoryItem extends vscode.TreeItem {
 class MessageItem extends vscode.TreeItem {
   constructor(message: string) {
     super(message, vscode.TreeItemCollapsibleState.None);
+    this.tooltip = message;
     this.iconPath = new vscode.ThemeIcon("info");
   }
 }
