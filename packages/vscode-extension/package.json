@@ -77,6 +77,12 @@
     ],
     "commands": [
       {
+        "command": "promptsChat.openApp",
+        "title": "Open App",
+        "category": "prompts.chat",
+        "icon": "$(globe)"
+      },
+      {
         "command": "promptsChat.search",
         "title": "Search Prompts",
         "category": "prompts.chat",
@@ -132,6 +138,11 @@
     ],
     "menus": {
       "view/title": [
+        {
+          "command": "promptsChat.openApp",
+          "when": "view == promptsChat.latest",
+          "group": "navigation@0"
+        },
         {
           "command": "promptsChat.search",
           "when": "view == promptsChat.latest",

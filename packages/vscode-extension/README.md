@@ -4,6 +4,7 @@ Search, browse, copy and insert AI prompts from [prompts.chat](https://prompts.c
 
 ## Features
 
+- **Open App** — the full prompts.chat web app in an editor tab (globe icon in the sidebar)
 - **Sidebar** (prompts.chat icon in the Activity Bar)
   - **Latest** — the 100 newest prompts
   - **Categories** — all prompts grouped by category

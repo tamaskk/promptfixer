@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { PromptStore, getPromptWebUrl } from "./store";
 import { PromptItem, PromptTreeProvider, type PromptView } from "./tree";
 import { PromptDetailPanel } from "./detail";
+import { AppPanel } from "./app";
 import { compilePrompt, extractVariables } from "./variables";
 import type { Prompt } from "./types";
 
@@ -81,6 +82,8 @@ export function activate(context: vscode.ExtensionContext): void {
     if (prompt) vscode.env.openExternal(vscode.Uri.parse(getPromptWebUrl(prompt)));
   };
 
+  const openApp = () => AppPanel.show(context.extensionUri);
+
   const setFavorite = async (arg: Prompt | PromptItem | undefined, favorite: boolean) => {
     const prompt = resolvePrompt(arg);
     if (!prompt) return;
@@ -151,6 +154,7 @@ export function activate(context: vscode.ExtensionContext): void {
       );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand("promptsChat.openApp", openApp),
     vscode.commands.registerCommand("promptsChat.search", search),
     vscode.commands.registerCommand("promptsChat.random", random),
     vscode.commands.registerCommand("promptsChat.refresh", refresh),
@@ -161,7 +165,10 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("promptsChat.addFavorite", (arg) => setFavorite(arg, true)),
     vscode.commands.registerCommand("promptsChat.removeFavorite", (arg) => setFavorite(arg, false)),
     vscode.workspace.onDidChangeConfiguration((event) => {
-      if (event.affectsConfiguration("promptsChat.baseUrl")) refresh();
+      if (event.affectsConfiguration("promptsChat.baseUrl")) {
+        refresh();
+        AppPanel.reload();
+      }
     }),
   );
 }
