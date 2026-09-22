@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { GET, POST } from "@/app/api/prompts/route";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
@@ -186,6 +186,49 @@ describe("GET /api/prompts", () => {
 
     expect(response.status).toBe(500);
     expect(data.error).toBe("server_error");
+  });
+});
+
+describe("GET /api/prompts rate limiting", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(db.prompt.findMany).mockResolvedValue([]);
+    vi.mocked(db.prompt.count).mockResolvedValue(0);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("should return 429 with Retry-After once a client IP exceeds the limit", async () => {
+    vi.stubEnv("TRUST_PROXY", "true");
+    const makeRequest = () =>
+      new Request("http://localhost:3000/api/prompts", {
+        headers: { "x-forwarded-for": "203.0.113.50" },
+      });
+
+    for (let i = 0; i < 60; i++) {
+      expect((await GET(makeRequest())).status).toBe(200);
+    }
+
+    const response = await GET(makeRequest());
+    const data = await response.json();
+
+    expect(response.status).toBe(429);
+    expect(data.error).toBe("rate_limit");
+    expect(response.headers.get("Retry-After")).toBeTruthy();
+    expect(db.prompt.findMany).toHaveBeenCalledTimes(60);
+  });
+
+  it("should not rate limit when no trusted client IP is available", async () => {
+    vi.stubEnv("TRUST_PROXY", "");
+
+    for (let i = 0; i < 61; i++) {
+      const request = new Request("http://localhost:3000/api/prompts", {
+        headers: { "x-forwarded-for": "203.0.113.51" },
+      });
+      expect((await GET(request)).status).toBe(200);
+    }
   });
 });
 

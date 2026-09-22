@@ -8,6 +8,7 @@ import { generatePromptEmbedding, findAndSaveRelatedPrompts } from "@/lib/ai/emb
 import { generatePromptSlug } from "@/lib/slug";
 import { checkPromptQuality } from "@/lib/ai/quality-check";
 import { isSimilarContent, normalizeContent } from "@/lib/similarity";
+import { publicApiLimiter, getClientIp } from "@/lib/rate-limit";
 
 const promptSchema = z.object({
   title: z.string().min(1).max(200),
@@ -328,6 +329,18 @@ const paginationQuerySchema = z.object({
 
 export async function GET(request: Request) {
   try {
+    // Rate-limit per client IP before hitting the database
+    const clientIp = getClientIp(request);
+    if (clientIp) {
+      const rateLimit = publicApiLimiter.check(clientIp);
+      if (!rateLimit.allowed) {
+        return NextResponse.json(
+          { error: "rate_limit", message: "Too many requests. Please try again later." },
+          { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } }
+        );
+      }
+    }
+
     const { searchParams } = new URL(request.url);
     const { page, perPage } = paginationQuerySchema.parse({
       page: searchParams.get("page"),

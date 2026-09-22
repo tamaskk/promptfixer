@@ -91,3 +91,33 @@ export const mcpWriteToolLimiter = new RateLimiter({ max: 5, windowSeconds: 60 }
 
 /** AI-powered tools (improve_prompt) – 2 req / min per identifier */
 export const mcpAiToolLimiter = new RateLimiter({ max: 2, windowSeconds: 60 });
+
+// ---------------------------------------------------------------------------
+// Public API rate limiting
+// ---------------------------------------------------------------------------
+
+/** Public REST API (GET /api/prompts) – 60 req / min per client IP */
+export const publicApiLimiter = new RateLimiter({ max: 60, windowSeconds: 60 });
+
+/**
+ * Resolve the client IP from proxy headers.
+ *
+ * Forwarded headers are client-controlled unless a reverse proxy overwrites
+ * them, so they are only trusted when TRUST_PROXY is enabled. Returns null
+ * when no trustworthy IP is available — callers should skip IP-based limiting
+ * rather than lump every client into one shared bucket.
+ */
+export function getClientIp(request: Request): string | null {
+  const trustProxy = process.env.TRUST_PROXY === "true" || process.env.TRUST_PROXY === "1";
+  if (!trustProxy) return null;
+
+  // The last X-Forwarded-For entry is the one appended by our own proxy;
+  // earlier entries can be forged by the client.
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  if (forwardedFor) {
+    const last = forwardedFor.split(",").map((ip) => ip.trim()).filter(Boolean).pop();
+    if (last) return last;
+  }
+
+  return request.headers.get("x-real-ip")?.trim() || null;
+}
