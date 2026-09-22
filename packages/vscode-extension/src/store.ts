@@ -12,7 +12,7 @@ interface CacheFile {
 
 export function getBaseUrl(): string {
   const baseUrl = vscode.workspace.getConfiguration("promptsChat").get<string>("baseUrl");
-  return (baseUrl || "https://prompts.chat").trim().replace(/\/+$/, "");
+  return (baseUrl || "http://localhost:3000").trim().replace(/\/+$/, "");
 }
 
 export function getPromptWebUrl(prompt: Prompt): string {
@@ -122,9 +122,14 @@ export class PromptStore {
 
   private async download(): Promise<void> {
     const baseUrl = getBaseUrl();
-    const response = await fetch(`${baseUrl}/prompts.json?full_content=true`, {
-      headers: { Accept: "application/json" },
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${baseUrl}/prompts.json?full_content=true`, {
+        headers: { Accept: "application/json" },
+      });
+    } catch {
+      throw new Error(`Cannot reach ${baseUrl}. Is the prompts.chat server running?`);
+    }
     if (!response.ok) {
       throw new Error(`Failed to load prompts from ${baseUrl} (HTTP ${response.status})`);
     }

@@ -18,7 +18,7 @@ Search, browse, copy and insert AI prompts from [prompts.chat](https://prompts.c
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `promptsChat.baseUrl` | `https://prompts.chat` | Instance to load prompts from, e.g. your Vercel deployment |
+| `promptsChat.baseUrl` | `http://localhost:3000` | Instance to load prompts from, e.g. `https://prompts.chat` or your own deployment |
 | `promptsChat.cacheMaxAgeHours` | `24` | Auto-refresh interval for the local cache (`0` = never) |
 
 ## Development

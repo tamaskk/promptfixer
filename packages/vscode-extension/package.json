@@ -33,8 +33,8 @@
       "properties": {
         "promptsChat.baseUrl": {
           "type": "string",
-          "default": "https://prompts.chat",
-          "markdownDescription": "Base URL of the prompts.chat instance to load prompts from (e.g. your own Vercel deployment)."
+          "default": "http://localhost:3000",
+          "markdownDescription": "Base URL of the prompts.chat instance to load prompts from (e.g. `http://localhost:3000` for a local dev server or `https://prompts.chat`)."
         },
         "promptsChat.cacheMaxAgeHours": {
           "type": "number",
