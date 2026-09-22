@@ -12,7 +12,7 @@ interface CacheFile {
 
 export function getBaseUrl(): string {
   const baseUrl = vscode.workspace.getConfiguration("promptsChat").get<string>("baseUrl");
-  return (baseUrl || "http://localhost:3000").trim().replace(/\/+$/, "");
+  return (baseUrl || "http://localhost:2342").trim().replace(/\/+$/, "");
 }
 
 export function getPromptWebUrl(prompt: Prompt): string {

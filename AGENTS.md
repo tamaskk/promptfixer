@@ -67,7 +67,7 @@
 
 ```bash
 # Development
-npm run dev              # Start development server (localhost:3000)
+npm run dev              # Start development server (localhost:2342)
 npm run build            # Build for production (runs prisma generate first)
 npm run start            # Start production server
 npm run lint             # Run ESLint

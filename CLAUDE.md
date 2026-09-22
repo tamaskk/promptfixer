@@ -12,7 +12,7 @@ For detailed agent guidelines, see [AGENTS.md](AGENTS.md).
 
 ```bash
 # Development
-npm run dev              # Start dev server at localhost:3000
+npm run dev              # Start dev server at localhost:2342
 npm run build            # Production build (runs prisma generate)
 npm run lint             # Run ESLint
 
