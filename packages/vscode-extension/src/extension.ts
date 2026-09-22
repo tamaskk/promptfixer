@@ -3,6 +3,8 @@ import { PromptStore, getPromptWebUrl } from "./store";
 import { PromptItem, PromptTreeProvider, type PromptView } from "./tree";
 import { PromptDetailPanel } from "./detail";
 import { AppPanel } from "./app";
+import { PromptFixerView } from "./fixer/view";
+import { OPENAI_KEY_SECRET } from "./fixer/engines";
 import { compilePrompt, extractVariables } from "./variables";
 import type { Prompt } from "./types";
 
@@ -153,7 +155,28 @@ export function activate(context: vscode.ExtensionContext): void {
         reportLoadError,
       );
 
+  const setOpenAIKey = async () => {
+    const key = await vscode.window.showInputBox({
+      title: "OpenAI API Key",
+      prompt: "Stored in VS Code's secret storage. Leave empty to remove.",
+      password: true,
+      ignoreFocusOut: true,
+    });
+    if (key === undefined) return;
+    if (key.trim()) {
+      await context.secrets.store(OPENAI_KEY_SECRET, key.trim());
+      vscode.window.showInformationMessage("OpenAI API key saved.");
+    } else {
+      await context.secrets.delete(OPENAI_KEY_SECRET);
+      vscode.window.showInformationMessage("OpenAI API key removed.");
+    }
+  };
+
   context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(PromptFixerView.viewId, new PromptFixerView(context), {
+      webviewOptions: { retainContextWhenHidden: true },
+    }),
+    vscode.commands.registerCommand("promptsChat.setOpenAIKey", setOpenAIKey),
     vscode.commands.registerCommand("promptsChat.openApp", openApp),
     vscode.commands.registerCommand("promptsChat.search", search),
     vscode.commands.registerCommand("promptsChat.random", random),

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0
+
+- Prompt Fixer: turn a quick request (e.g. "fix it please") into a project-aware prompt using CLAUDE.md, AGENTS.md and .claude/
+- Choose GPT-4o or the Claude CLI with one click; copy, insert or run the result in Claude Code
+
 ## 0.1.1
 
 - Show the full load error in a tooltip
