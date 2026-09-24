@@ -1,75 +1,138 @@
 import * as vscode from "vscode";
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
+import { existsSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 
-export type Engine = "gpt-4o" | "claude-cli";
-
-export const OPENAI_KEY_SECRET = "promptsChat.openaiApiKey";
+export type Engine = "codex-cli" | "claude-cli";
 
 function fixerConfig() {
   return vscode.workspace.getConfiguration("promptsChat.fixer");
 }
 
-export async function generateWithOpenAI(
-  secrets: vscode.SecretStorage,
-  system: string,
-  user: string,
-  signal: AbortSignal,
-): Promise<string> {
-  const apiKey = (await secrets.get(OPENAI_KEY_SECRET)) || process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('No OpenAI API key. Run "prompts.chat: Set OpenAI API Key" first.');
-  }
-
-  const baseUrl = (fixerConfig().get<string>("openaiBaseUrl") || "https://api.openai.com/v1").replace(/\/+$/, "");
-  const model = fixerConfig().get<string>("openaiModel") || "gpt-4o";
-
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model,
-      temperature: 0.3,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-    }),
-    signal,
-  });
-
-  if (!response.ok) {
-    const body = (await response.json().catch(() => undefined)) as { error?: { message?: string } } | undefined;
-    throw new Error(`OpenAI error (HTTP ${response.status}): ${body?.error?.message ?? response.statusText}`);
-  }
-
-  const data = (await response.json()) as { choices?: Array<{ message?: { content?: string } }> };
-  const text = data.choices?.[0]?.message?.content?.trim();
-  if (!text) throw new Error("OpenAI returned an empty response.");
-  return text;
-}
-
 /**
- * Resolve the Claude CLI binary. Apps launched from the macOS Dock do not
- * inherit the shell PATH, so common install locations are checked too.
+ * Resolve a CLI binary. Apps launched from the macOS Dock do not inherit the
+ * shell PATH, so common install locations are checked too.
  */
-export function resolveClaudePath(): string {
-  const configured = fixerConfig().get<string>("claudePath")?.trim();
-  if (configured && configured !== "claude") return configured;
+function resolveBinary(configKey: string, command: string, extraCandidates: string[]): string {
+  const configured = fixerConfig().get<string>(configKey)?.trim();
+  if (configured && configured !== command) return configured;
 
   const candidates = [
-    join(homedir(), ".local", "bin", "claude"),
-    join(homedir(), ".claude", "local", "claude"),
-    "/opt/homebrew/bin/claude",
-    "/usr/local/bin/claude",
+    join(homedir(), ".local", "bin", command),
+    ...extraCandidates,
+    "/opt/homebrew/bin/" + command,
+    "/usr/local/bin/" + command,
   ];
-  return candidates.find((candidate) => existsSync(candidate)) ?? "claude";
+  return candidates.find((candidate) => existsSync(candidate)) ?? command;
 }
 
-export function generateWithClaudeCli(system: string, user: string, cwd: string | undefined, signal: AbortSignal): Promise<string> {
-  const claudePath = resolveClaudePath();
+export function resolveClaudePath(): string {
+  return resolveBinary("claudePath", "claude", [join(homedir(), ".claude", "local", "claude")]);
+}
+
+export function resolveCodexPath(): string {
+  const nvmBin = join(homedir(), ".nvm", "versions", "node");
+  const nvmCandidates = existsSync(nvmBin)
+    ? readdirSync(nvmBin)
+        .map((version) => join(nvmBin, version, "bin", "codex"))
+        .filter((candidate) => existsSync(candidate))
+        .sort()
+        .reverse()
+    : [];
+  return resolveBinary("codexPath", "codex", nvmCandidates);
+}
+
+interface SpawnOptions {
+  binary: string;
+  args: string[];
+  stdin: string;
+  cwd: string | undefined;
+  signal: AbortSignal;
+  notFoundHint: string;
+  /** Read the reply from this file instead of stdout (used by Codex). */
+  outputFile?: string;
+}
+
+function run({ binary, args, stdin, cwd, signal, notFoundHint, outputFile }: SpawnOptions): Promise<string> {
+  return new Promise((resolve, reject) => {
+    // Node-based CLIs have a `#!/usr/bin/env node` shebang, so their own directory must be on PATH
+    const env = { ...process.env, PATH: `${dirname(binary)}:${process.env.PATH ?? ""}` };
+    const child = spawn(binary, args, { cwd, env, signal });
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (chunk: Buffer) => (stdout += chunk.toString("utf8")));
+    child.stderr.on("data", (chunk: Buffer) => (stderr += chunk.toString("utf8")));
+    child.on("error", (error: NodeJS.ErrnoException) => {
+      if (error.code === "ENOENT") reject(new Error(notFoundHint));
+      else if (error.name === "AbortError") reject(new Error("Cancelled."));
+      else reject(error);
+    });
+    child.on("close", (code) => {
+      let text = stdout.trim();
+      if (outputFile) {
+        try {
+          text = readFileSync(outputFile, "utf8").trim();
+        } catch {
+          // Fall back to stdout below
+        }
+        rmSync(outputFile, { force: true });
+      }
+      if (code === 0 && text) return resolve(text);
+      // CLIs echo the prompt before failing, so the real error is at the end
+      const details = (stderr || stdout).trim().slice(-500) || "no output";
+      reject(new Error(`${binary} exited with code ${code}: ${details}`));
+    });
+
+    child.stdin.end(stdin);
+  });
+}
+
+/** Local Codex CLI (`codex exec`), read-only sandbox, using the existing ChatGPT login. */
+export function generateWithCodexCli(
+  system: string,
+  user: string,
+  cwd: string | undefined,
+  signal: AbortSignal,
+): Promise<string> {
+  const binary = resolveCodexPath();
+  const outputFile = join(tmpdir(), `prompts-chat-fixer-${Date.now()}.txt`);
+  const args = [
+    "exec",
+    "--sandbox",
+    "read-only",
+    "--skip-git-repo-check",
+    "--color",
+    "never",
+    "--output-last-message",
+    outputFile,
+  ];
+  if (cwd) args.push("--cd", cwd);
+  const model = fixerConfig().get<string>("codexModel")?.trim();
+  if (model) args.push("--model", model);
+  args.push("-");
+
+  return run({
+    binary,
+    args,
+    // codex exec has no separate system prompt, so both parts go in as one message
+    stdin: `${system}\n\n---\n\n${user}`,
+    cwd,
+    signal,
+    notFoundHint: `Codex CLI not found at "${binary}". Install it or set "promptsChat.fixer.codexPath" in Settings.`,
+    outputFile,
+  });
+}
+
+/** Claude CLI (`claude -p`) with editing tools disabled. */
+export function generateWithClaudeCli(
+  system: string,
+  user: string,
+  cwd: string | undefined,
+  signal: AbortSignal,
+): Promise<string> {
+  const binary = resolveClaudePath();
   const args = [
     "-p",
     "--output-format",
@@ -86,28 +149,12 @@ export function generateWithClaudeCli(system: string, user: string, cwd: string 
   const model = fixerConfig().get<string>("claudeModel")?.trim();
   if (model) args.push("--model", model);
 
-  return new Promise((resolve, reject) => {
-    const child = spawn(claudePath, args, { cwd, env: process.env, signal });
-    let stdout = "";
-    let stderr = "";
-
-    child.stdout.on("data", (chunk: Buffer) => (stdout += chunk.toString("utf8")));
-    child.stderr.on("data", (chunk: Buffer) => (stderr += chunk.toString("utf8")));
-    child.on("error", (error: NodeJS.ErrnoException) => {
-      if (error.code === "ENOENT") {
-        reject(new Error(`Claude CLI not found at "${claudePath}". Set "promptsChat.fixer.claudePath" in Settings.`));
-      } else if (error.name === "AbortError") {
-        reject(new Error("Cancelled."));
-      } else {
-        reject(error);
-      }
-    });
-    child.on("close", (code) => {
-      const text = stdout.trim();
-      if (code === 0 && text) resolve(text);
-      else reject(new Error(`Claude CLI exited with code ${code}: ${(stderr || stdout).trim().slice(0, 500) || "no output"}`));
-    });
-
-    child.stdin.end(user);
+  return run({
+    binary,
+    args,
+    stdin: user,
+    cwd,
+    signal,
+    notFoundHint: `Claude CLI not found at "${binary}". Install it or set "promptsChat.fixer.claudePath" in Settings.`,
   });
 }

@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { collectProjectContext } from "./context";
 import { SYSTEM_PROMPT, buildUserMessage } from "./meta-prompt";
-import { generateWithClaudeCli, generateWithOpenAI, resolveClaudePath, type Engine } from "./engines";
+import { generateWithClaudeCli, generateWithCodexCli, resolveClaudePath, type Engine } from "./engines";
 
 type IncomingMessage =
   | { type: "generate"; request: string; engine: Engine }
@@ -83,12 +83,10 @@ export class PromptFixerView implements vscode.WebviewViewProvider {
       this.post({ type: "sources", files, activeFile: context?.activeFile?.path });
 
       const user = buildUserMessage(request, context);
-      this.post({ type: "status", text: engine === "gpt-4o" ? "Generating with GPT-4o…" : "Generating with Claude CLI…" });
+      this.post({ type: "status", text: engine === "codex-cli" ? "Generating with Codex CLI…" : "Generating with Claude CLI…" });
 
-      const result =
-        engine === "gpt-4o"
-          ? await generateWithOpenAI(this.context.secrets, SYSTEM_PROMPT, user, abort.signal)
-          : await generateWithClaudeCli(SYSTEM_PROMPT, user, context?.root, abort.signal);
+      const generate = engine === "codex-cli" ? generateWithCodexCli : generateWithClaudeCli;
+      const result = await generate(SYSTEM_PROMPT, user, context?.root, abort.signal);
 
       this.post({ type: "result", text: result });
     } catch (error) {
@@ -134,7 +132,7 @@ export class PromptFixerView implements vscode.WebviewViewProvider {
   <textarea id="request" placeholder="e.g. fix it please"></textarea>
   <div class="hint">⌘/Ctrl + Enter to generate. Uses CLAUDE.md, AGENTS.md, .claude/ and the active file.</div>
   <div class="engines" role="radiogroup" aria-label="Engine">
-    <button data-engine="gpt-4o" role="radio">GPT-4o</button>
+    <button data-engine="codex-cli" role="radio">Codex CLI</button>
     <button data-engine="claude-cli" role="radio">Claude CLI</button>
   </div>
   <div class="row">

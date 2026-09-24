@@ -2,7 +2,7 @@
   "name": "prompts-chat",
   "displayName": "prompts.chat",
   "description": "Search, browse and insert AI prompts from prompts.chat, and turn quick requests into project-aware prompts for Claude Code",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "prompts-chat",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -42,16 +42,6 @@
           "minimum": 0,
           "markdownDescription": "Refresh the local prompt cache automatically when it is older than this many hours. `0` disables automatic refresh."
         },
-        "promptsChat.fixer.openaiModel": {
-          "type": "string",
-          "default": "gpt-4o",
-          "markdownDescription": "OpenAI model used by the Prompt Fixer when the **GPT-4o** engine is selected."
-        },
-        "promptsChat.fixer.openaiBaseUrl": {
-          "type": "string",
-          "default": "https://api.openai.com/v1",
-          "markdownDescription": "OpenAI-compatible API base URL for the Prompt Fixer."
-        },
         "promptsChat.fixer.claudePath": {
           "type": "string",
           "default": "claude",
@@ -61,6 +51,16 @@
           "type": "string",
           "default": "",
           "markdownDescription": "Optional model for the Claude CLI engine (passed as `--model`, e.g. `sonnet` or `opus`). Empty uses the CLI default."
+        },
+        "promptsChat.fixer.codexPath": {
+          "type": "string",
+          "default": "codex",
+          "markdownDescription": "Path to the Codex CLI. `codex` auto-detects nvm, `~/.local/bin` and Homebrew locations."
+        },
+        "promptsChat.fixer.codexModel": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Optional model for the Codex CLI engine (passed as `--model`). Empty uses the Codex default."
         }
       }
     },
@@ -159,12 +159,6 @@
         "title": "Remove from Favorites",
         "category": "prompts.chat",
         "icon": "$(star-full)"
-      },
-      {
-        "command": "promptsChat.setOpenAIKey",
-        "title": "Set OpenAI API Key",
-        "category": "prompts.chat",
-        "icon": "$(key)"
       }
     ],
     "menus": {
@@ -188,11 +182,6 @@
           "command": "promptsChat.refresh",
           "when": "view == promptsChat.latest",
           "group": "navigation@3"
-        },
-        {
-          "command": "promptsChat.setOpenAIKey",
-          "when": "view == promptsChat.fixer",
-          "group": "navigation@1"
         }
       ],
       "view/item/context": [

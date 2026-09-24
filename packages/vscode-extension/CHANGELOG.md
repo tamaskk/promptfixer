@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0
+
+- Prompt Fixer uses the local Codex CLI (`codex exec`, read-only sandbox) instead of the OpenAI API — no API key needed
+
 ## 0.2.0
 
 - Prompt Fixer: turn a quick request (e.g. "fix it please") into a project-aware prompt using CLAUDE.md, AGENTS.md and .claude/
